@@ -1,0 +1,37 @@
+name: 🏛️ Barbero Alert — Aggiornamento automatico eventi
+
+on:
+  schedule:
+    # Ogni giorno alle 8:00 e alle 20:00 (ora italiana = UTC+1/+2)
+    - cron: '0 7,19 * * *'
+  workflow_dispatch:  # permette anche avvio manuale dal sito GitHub
+
+jobs:
+  scrape-and-update:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # necessario per fare il commit automatico
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Installa dipendenze
+        run: pip install requests beautifulsoup4
+
+      - name: 🔍 Esegui scraper
+        run: python scraper.py
+
+      - name: 📝 Commit e push se ci sono modifiche
+        run: |
+          git config --local user.email "barbero-bot@github-actions"
+          git config --local user.name "Barbero Alert Bot"
+          git add barbero-alert.html events.json
+          git diff --staged --quiet || git commit -m "🔔 Aggiornamento automatico eventi Barbero — $(date '+%d/%m/%Y %H:%M')"
+          git push
