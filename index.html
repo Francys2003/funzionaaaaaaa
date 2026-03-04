@@ -349,15 +349,25 @@
 
 <script>
 // ─── CONFIGURAZIONE ───────────────────────────────────────────────
-// Inserisci qui la tua API key di Anthropic
-const ANTHROPIC_API_KEY = 'LA_TUA_API_KEY_QUI';
+// La API key è gestita in modo sicuro dal server (netlify/functions/ask-barbero.js)
 
 let cachedEvents = [];
 let lastFetch    = null;
 const INTERVAL   = 60 * 60 * 1000;
 
 // Eventi di fallback mostrati se l'AI non risponde
-const SEED_EVENTS = [];
+const SEED_EVENTS = [
+  {
+    id: "seed-1",
+    title: "Verifica sul sito ufficiale per eventi aggiornati",
+    date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+    location: "Italia",
+    type: "Conferenza",
+    url: "https://www.vassallidibarbero.it/category/eventi-barbero/",
+    source: "vassallidibarbero.it",
+    isNew: false
+  }
+];
 
 const M = ['GEN','FEB','MAR','APR','MAG','GIU','LUG','AGO','SET','OTT','NOV','DIC'];
 
@@ -420,20 +430,10 @@ Rispondi SOLO con un array JSON valido, nessun testo aggiuntivo, nessun markdown
 Ogni evento deve avere: id, title, date (YYYY-MM-DD), location, type, url, source, isNew.
 Includi solo eventi dal ${new Date().toISOString().split('T')[0]} in poi. Massimo 10 eventi.`;
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("/.netlify/functions/ask-barbero", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true"
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        tools: [{ type: "web_search_20250305", name: "web_search" }],
-        messages: [{ role: "user", content: prompt }]
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt })
     });
 
     if(!res.ok){
