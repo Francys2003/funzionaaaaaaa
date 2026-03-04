@@ -216,7 +216,7 @@ def main():
 # ── AGGIORNA IL FILE HTML CON I NUOVI EVENTI ─────────────────────────────
 def update_html(events):
     try:
-        with open("barbero-alert.html", "r", encoding="utf-8") as f:
+        with open("index.html", "r", encoding="utf-8") as f:
             html = f.read()
 
         json_str = json.dumps(events, ensure_ascii=False, indent=2)
@@ -230,7 +230,7 @@ def update_html(events):
             count=1
         )
 
-        with open("barbero-alert.html", "w", encoding="utf-8") as f:
+        with open("index.html", "w", encoding="utf-8") as f:
             f.write(html)
 
         print("✅ barbero-alert.html aggiornato con i nuovi eventi")
