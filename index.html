@@ -348,11 +348,27 @@
 <footer>Progetto non ufficiale — fan made con ❤️ &nbsp;|&nbsp; Dati da vassallidibarbero.it, Eventbrite, Laterza e YouTube</footer>
 
 <script>
+// ─── CONFIGURAZIONE ───────────────────────────────────────────────
+// Inserisci qui la tua API key di Anthropic
+const ANTHROPIC_API_KEY = 'LA_TUA_API_KEY_QUI';
+
 let cachedEvents = [];
 let lastFetch    = null;
 const INTERVAL   = 60 * 60 * 1000;
 
-const SEED_EVENTS = [];
+// Eventi di fallback mostrati se l'AI non risponde
+const SEED_EVENTS = [
+  {
+    id: "seed-1",
+    title: "Verifica sul sito ufficiale per eventi aggiornati",
+    date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+    location: "Italia",
+    type: "Conferenza",
+    url: "https://www.vassallidibarbero.it/category/eventi-barbero/",
+    source: "vassallidibarbero.it",
+    isNew: false
+  }
+];
 
 const M = ['GEN','FEB','MAR','APR','MAG','GIU','LUG','AGO','SET','OTT','NOV','DIC'];
 
@@ -416,23 +432,43 @@ Ogni evento deve avere: id, title, date (YYYY-MM-DD), location, type, url, sourc
 Includi solo eventi dal ${new Date().toISOString().split('T')[0]} in poi. Massimo 10 eventi.`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
       body: JSON.stringify({
-        model:"claude-sonnet-4-20250514",
-        max_tokens:1000,
-        tools:[{ type:"web_search_20250305", name:"web_search" }],
-        messages:[{ role:"user", content: prompt }]
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        messages: [{ role: "user", content: prompt }]
       })
     });
 
-    if(!res.ok) throw new Error(`API ${res.status}`);
+    if(!res.ok){
+      const errBody = await res.text();
+      throw new Error(`API ${res.status}: ${errBody}`);
+    }
+
     const data = await res.json();
-    const text = (data.content || []).filter(b => b.type==='text').map(b => b.text).join('');
-    const clean = text.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(clean);
+
+    // Estrai solo i blocchi di testo dalla risposta (ignora tool_use/tool_result)
+    const text = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('');
+
+    // Pulisci eventuali backtick markdown e cerca un array JSON
+    const clean = text.replace(/```json|```/g, '').trim();
+    const match = clean.match(/\[[\s\S]*\]/);
+    if(!match) throw new Error('Nessun array JSON trovato nella risposta AI');
+
+    const parsed = JSON.parse(match[0]);
     if(Array.isArray(parsed) && parsed.length > 0) return parsed;
     return null;
+
   } catch(e) {
     console.warn('[BarberoAlert] AI fetch failed:', e.message);
     return null;
@@ -448,7 +484,7 @@ async function loadEvents(){
   const merged = [...SEED_EVENTS];
   if(aiEvents){
     aiEvents.forEach(ev => {
-      if(!merged.find(e=>e.id===ev.id)) merged.push(ev);
+      if(!merged.find(e => e.id === ev.id)) merged.push(ev);
     });
   }
 
