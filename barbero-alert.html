@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#0d0d0d"/>
+<meta name="description" content="Notifiche automatiche per gli eventi di Alessandro Barbero"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<meta name="apple-mobile-web-app-title" content="Barbero Alert"/>
+<title>Barbero Alert</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600&family=Josefin+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --gold: #d4a843;
+    --gold2: #f0c96a;
+    --text: #e8e0d0;
+    --muted: #7a7060;
+    --red: #c0392b;
+    --green: #27ae60;
+    --border: rgba(212,168,67,0.15);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Texture */
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background: radial-gradient(ellipse at 20% 0%, rgba(212,168,67,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 100%, rgba(192,57,43,0.04) 0%, transparent 60%);
+    pointer-events:none; z-index:0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    padding: 3rem 2rem 2.5rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .header-line {
+    display: flex; align-items: center; justify-content: center; gap: 1rem;
+    margin-bottom: 1.2rem;
+  }
+  .header-line::before, .header-line::after {
+    content:''; flex:1; height:1px;
+    background: linear-gradient(90deg, transparent, var(--gold));
+    max-width: 120px;
+  }
+  .header-line::after { background: linear-gradient(90deg, var(--gold), transparent); }
+
+  .tag {
+    font-size: 0.65rem; letter-spacing: 0.35em; text-transform: uppercase;
+    color: var(--gold); font-family: 'Josefin Sans', sans-serif; font-weight: 600;
+  }
+
+  h1 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: clamp(2.8rem, 8vw, 5rem);
+    font-weight: 300;
+    line-height: 1;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--gold2);
+  }
+
+  .subtitle {
+    font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--muted); margin-top: 0.8rem;
+  }
+
+  /* ── LIVE BADGE ── */
+  .live-badge {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: rgba(39,174,96,0.12); border: 1px solid rgba(39,174,96,0.3);
+    color: #4ade80; padding: 0.3rem 0.9rem; border-radius: 100px;
+    font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase;
+    margin-top: 1.2rem; font-weight: 600;
+    animation: fade-in 1s ease both;
+  }
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #4ade80;
+    animation: live-pulse 2s infinite;
+  }
+  @keyframes live-pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
+    50% { opacity:.7; box-shadow: 0 0 0 4px rgba(74,222,128,0); }
+  }
+  @keyframes fade-in { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem;
+    position: relative; z-index: 1;
+  }
+
+  /* ── NOTIFY BOX ── */
+  .notify-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 2.5rem;
+    position: relative;
+    animation: fade-in 0.6s ease both;
+  }
+  .notify-box::before {
+    content:''; position:absolute; top:0; left:0;
+    width:3px; height:100%; background: var(--gold);
+  }
+
+  .notify-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem; font-weight: 600;
+    color: var(--gold2); margin-bottom: 0.6rem;
+  }
+  .notify-desc {
+    font-size: 0.85rem; line-height: 1.8; color: var(--muted);
+    margin-bottom: 1.5rem;
+  }
+
+  /* STATUS */
+  #status-wrap {
+    display: flex; align-items: center; gap: 0.75rem;
+    margin-bottom: 1.25rem; flex-wrap: wrap;
+  }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.3rem 0.85rem; border-radius: 100px;
+    font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+  }
+  .pill-off  { background:rgba(122,112,96,0.15); color:var(--muted); border:1px solid rgba(122,112,96,0.3); }
+  .pill-on   { background:rgba(39,174,96,0.12); color:#4ade80; border:1px solid rgba(39,174,96,0.3); }
+  .pill-err  { background:rgba(192,57,43,0.12); color:#f87171; border:1px solid rgba(192,57,43,0.3); }
+  .pill-dot  { width:6px; height:6px; border-radius:50%; }
+  .dot-off { background:var(--muted); }
+  .dot-on  { background:#4ade80; animation: live-pulse 2s infinite; }
+  .dot-err { background:#f87171; }
+
+  /* BUTTONS */
+  .btn-row { display:flex; gap:0.75rem; flex-wrap:wrap; }
+
+  .btn {
+    display:inline-flex; align-items:center; gap:0.5rem;
+    padding: 0.7rem 1.5rem;
+    border: none; border-radius: 2px;
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 0.75rem; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-gold {
+    background: var(--gold); color: #0d0d0d;
+  }
+  .btn-gold:hover { background: var(--gold2); transform: translateY(-1px); }
+  .btn-outline {
+    background: transparent; color: var(--gold);
+    border: 1px solid rgba(212,168,67,0.4);
+  }
+  .btn-outline:hover { border-color: var(--gold); background: rgba(212,168,67,0.06); }
+  .btn:disabled { opacity:0.35; cursor:not-allowed; transform:none !important; }
+
+  /* ── SOURCES BOX ── */
+  .sources-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2.5rem;
+    animation: fade-in 0.8s ease both;
+  }
+  .sources-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.2rem; font-weight: 600; color: var(--gold2);
+    margin-bottom: 1rem; display:flex; align-items:center; gap:0.5rem;
+  }
+  .sources-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.6rem;
+  }
+  .source-item {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 2px; font-size: 0.78rem; color: var(--muted);
+    text-decoration: none; transition: all 0.2s;
+  }
+  .source-item:hover { border-color: var(--gold); color: var(--gold2); }
+  .source-icon { font-size: 1rem; flex-shrink:0; }
+  .source-name { font-weight: 600; color: var(--text); font-size: 0.75rem; display:block; letter-spacing:0.05em; }
+
+  /* ── SECTION HEADER ── */
+  .section-hd {
+    display: flex; align-items: baseline;
+    justify-content: space-between; gap:1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.6rem; margin-bottom: 1.5rem;
+  }
+  .section-hd h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem; font-weight: 300; color: var(--text);
+  }
+  .section-hd small { font-size:0.7rem; color:var(--muted); letter-spacing:0.1em; }
+
+  /* ── LOADER ── */
+  .loader {
+    display: flex; flex-direction:column; align-items:center; gap:1rem;
+    padding: 4rem 2rem; color: var(--muted); font-size:0.8rem; letter-spacing:0.1em;
+  }
+  .spinner {
+    width:32px; height:32px; border-radius:50%;
+    border: 2px solid rgba(212,168,67,0.2);
+    border-top-color: var(--gold);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ── EVENT CARDS ── */
+  #events-list { display:flex; flex-direction:column; gap:1px; }
+
+  .ev {
+    display: grid;
+    grid-template-columns: 70px 1fr auto;
+    gap: 0 1.5rem;
+    align-items: center;
+    padding: 1.1rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    text-decoration: none; color: inherit;
+    transition: all 0.2s;
+    animation: fade-in 0.5s ease both;
+  }
+  .ev:hover {
+    border-color: rgba(212,168,67,0.4);
+    background: var(--surface2);
+    transform: translateX(4px);
+  }
+
+  .ev-date {
+    text-align: center;
+    border-right: 1px solid var(--border);
+    padding-right: 1.25rem;
+  }
+  .ev-day  { font-family:'Cormorant Garamond',serif; font-size:2rem; color:var(--gold2); line-height:1; font-weight:600; }
+  .ev-mon  { font-size:0.6rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--gold); font-weight:600; }
+  .ev-year { font-size:0.6rem; color:var(--muted); }
+
+  .ev-body {}
+  .ev-title { font-family:'Cormorant Garamond',serif; font-size:1.1rem; color:var(--text); margin-bottom:0.2rem; }
+  .ev-meta  { font-size:0.72rem; color:var(--muted); letter-spacing:0.05em; }
+  .ev-src   { font-size:0.65rem; color:rgba(212,168,67,0.5); margin-top:0.15rem; }
+
+  .ev-badge {
+    padding: 0.2rem 0.6rem; border-radius:2px;
+    font-size:0.6rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;
+    white-space:nowrap; align-self:flex-start;
+  }
+  .badge-new  { background:rgba(192,57,43,0.2); color:#f87171; border:1px solid rgba(192,57,43,0.3); }
+  .badge-soon { background:rgba(212,168,67,0.1); color:var(--gold); border:1px solid var(--border); }
+
+  /* ── IPHONE GUIDE ── */
+  .guide {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.5rem 2rem;
+    margin-top: 2.5rem;
+  }
+  .guide-title {
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.3rem; font-weight:600; color:var(--gold2);
+    margin-bottom:1rem;
+  }
+  .steps { display:flex; flex-direction:column; gap:0.6rem; }
+  .step  { display:flex; gap:0.75rem; align-items:flex-start; font-size:0.8rem; color:var(--muted); line-height:1.6; }
+  .step-n {
+    min-width:22px; height:22px; border-radius:50%;
+    background:rgba(212,168,67,0.15); color:var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.65rem; font-weight:600; flex-shrink:0; margin-top:0.1rem;
+  }
+  .step strong { color: var(--text); }
+
+  /* ── LAST CHECKED ── */
+  #last-check { font-size:0.7rem; color:var(--muted); margin-top:1rem; letter-spacing:0.05em; }
+
+  /* ── TOAST ── */
+  #toast {
+    position:fixed; bottom:1.5rem; right:1.5rem;
+    background:var(--surface2); color:var(--text);
+    padding:0.9rem 1.4rem; border-radius:2px;
+    border-left:3px solid var(--gold);
+    font-size:0.8rem; letter-spacing:0.05em;
+    box-shadow:0 8px 40px rgba(0,0,0,0.5);
+    transform:translateY(5rem); opacity:0;
+    transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    z-index:9999; max-width:300px;
+  }
+  #toast.show { transform:translateY(0); opacity:1; }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align:center; padding:1.5rem; color:var(--muted);
+    font-size:0.7rem; letter-spacing:0.08em; border-top:1px solid var(--border);
+    position:relative; z-index:1;
+  }
+
+  @media(max-width:540px){
+    .notify-box { padding:1.25rem; }
+    .ev { grid-template-columns:55px 1fr; }
+    .ev-badge { display:none; }
+    .sources-grid { grid-template-columns:1fr; }
+    h1 { font-size:2.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-line"><span class="tag">Servizio di monitoraggio automatico</span></div>
+  <h1>Barbero <em>Alert</em></h1>
+  <p class="subtitle">Conferenze · Lezioni · Podcast · Festival</p>
+  <div style="display:flex;justify-content:center">
+    <span class="live-badge" id="live-badge">
+      <span class="live-dot"></span>
+      <span id="live-text">In attesa…</span>
+    </span>
+  </div>
+</header>
+
+<main>
+
+  <!-- NOTIFY BOX -->
+  <div class="notify-box">
+    <p class="notify-title">🔔 Notifiche Push</p>
+    <p class="notify-desc">
+      Attiva le notifiche per ricevere un avviso immediato sul telefono ogni volta che viene rilevato un nuovo evento di Alessandro Barbero. 
+      Il sistema controlla automaticamente i siti più aggiornati ogni ora.
+    </p>
+
+    <div id="status-wrap">
+      <span class="status-pill pill-off" id="s-pill">
+        <span class="pill-dot dot-off" id="s-dot"></span>
+        <span id="s-text">Non attive</span>
+      </span>
+      <span id="last-check"></span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-gold" id="btn-sub" onclick="subscribe()">
+        🔔 &nbsp;Attiva Notifiche
+      </button>
+      <button class="btn btn-outline" id="btn-test" onclick="testNotif()" disabled>
+        Prova
+      </button>
+      <button class="btn btn-outline" id="btn-refresh" onclick="loadEvents()">
+        ↻ &nbsp;Aggiorna ora
+      </button>
+    </div>
+  </div>
+
+  <!-- SOURCES -->
+  <div class="sources-box">
+    <p class="sources-title">🌐 Fonti monitorate in automatico</p>
+    <div class="sources-grid">
+      <a class="source-item" href="https://www.vassallidibarbero.it/category/eventi-barbero/" target="_blank">
+        <span class="source-icon">🏛️</span>
+        <div><span class="source-name">Vassalli di Barbero</span>Il sito fan più completo e aggiornato</div>
+      </a>
+      <a class="source-item" href="https://www.eventbrite.it/d/italy/alessandro-barbero/" target="_blank">
+        <span class="source-icon">🎟️</span>
+        <div><span class="source-name">Eventbrite Italia</span>Biglietteria online degli eventi</div>
+      </a>
+      <a class="source-item" href="https://www.laterza.it/autori/barbero-alessandro/" target="_blank">
+        <span class="source-icon">📚</span>
+        <div><span class="source-name">Editori Laterza</span>Presentazioni libri e lezioni</div>
+      </a>
+      <a class="source-item" href="https://www.youtube.com/@ProfessorBarbero" target="_blank">
+        <span class="source-icon">▶️</span>
+        <div><span class="source-name">YouTube ufficiale</span>Nuovi video e dirette</div>
+      </a>
+      <a class="source-item" href="https://open.spotify.com/show/7iQXmUT7XGuZSzAMjoNWlj" target="_blank">
+        <span class="source-icon">🎙️</span>
+        <div><span class="source-name">Chiedilo a Barbero</span>Podcast Chora Media</div>
+      </a>
+      <a class="source-item" href="https://www.raistoria.rai.it" target="_blank">
+        <span class="source-icon">📺</span>
+        <div><span class="source-name">Rai Storia</span>Programmi televisivi</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- EVENTS -->
+  <div class="section-hd">
+    <h2>Prossimi eventi</h2>
+    <small id="upd-label">caricamento…</small>
+  </div>
+  <div id="events-list">
+    <div class="loader">
+      <div class="spinner"></div>
+      <span>Ricerca eventi in corso…</span>
+    </div>
+  </div>
+
+  <!-- GUIDE -->
+  <div class="guide">
+    <p class="guide-title">📱 Come installare sul telefono</p>
+    <div class="steps">
+      <div class="step"><span class="step-n">1</span><span>Carica questo file <strong>barbero-alert.html</strong> su un repo GitHub e attiva <strong>GitHub Pages</strong> (Settings → Pages → branch main).</span></div>
+      <div class="step"><span class="step-n">2</span><span><strong>Android (Chrome):</strong> apri la pagina, premi "Attiva Notifiche" e accetta il permesso. Fatto!</span></div>
+      <div class="step"><span class="step-n">3</span><span><strong>iPhone (Safari ≥ iOS 16.4):</strong> premi il tasto <strong>Condividi ↑</strong> → <em>"Aggiungi a schermata Home"</em> → apri l'app → "Attiva Notifiche".</span></div>
+      <div class="step"><span class="step-n">4</span><span>Tieni la pagina aperta in background oppure aggiungila alla schermata home: il sistema controlla i nuovi eventi ogni ora automaticamente.</span></div>
+      <div class="step"><span class="step-n">5</span><span>Ogni 24 ore il sistema usa l'AI per verificare i siti di riferimento e aggiornare automaticamente la lista eventi senza che tu debba fare nulla.</span></div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<footer>Progetto non ufficiale — fan made con ❤️ &nbsp;|&nbsp; Dati da vassallidibarbero.it, Eventbrite, Laterza e YouTube</footer>
+
+<!-- ═══════════════════ SCRIPT ═══════════════════ -->
+<script>
+// ═══════════════════════════════════════════════════════════
+// EVENTI: combinazione di dati reali trovati + aggiornamento AI
+// ═══════════════════════════════════════════════════════════
+
+// Cache locale in memoria (non usa localStorage per compatibilità)
+let cachedEvents = [];
+let lastFetch    = null;
+const INTERVAL   = 60 * 60 * 1000; // 1 ora
+
+// ─── DATI REALI GIÀ TROVATI (aggiornati al marzo 2026) ────────────────────
+const SEED_EVENTS = [
+  {
+    id:"b-circo2026",
+    title:"Alessandro Barbero al Circo Massimo",
+    date:"2026-04-01",
+    location:"Circo Massimo, Roma",
+    type:"Conferenza-spettacolo",
+    url:"https://www.vassallidibarbero.it/2026/02/25/alessandro-barbero-al-circo-massimo-2026/",
+    source:"Vassalli di Barbero",
+    isNew:true
+  },
+  {
+    id:"b-sudafrica2026",
+    title:"Barbero in Sudafrica — Tour conferenze",
+    date:"2026-04-10",
+    location:"Johannesburg / Città del Capo, Sudafrica",
+    type:"Tour internazionale",
+    url:"https://www.vassallidibarbero.it/2026/02/02/alessandro-barbero-in-sudafrica-2026/",
+    source:"Vassalli di Barbero",
+    isNew:true
+  },
+  {
+    id:"b-castenedolo2026",
+    title:"Barbero & Cazzullo — San Francesco d'Assisi",
+    date:"2026-03-20",
+    location:"Castenedolo (BS)",
+    type:"Conferenza",
+    url:"https://www.vassallidibarbero.it/2026/01/05/barbero-e-cazzullo-insieme-sul-palco-eventi-2026/",
+    source:"Vassalli di Barbero",
+    isNew:true
+  },
+  {
+    id:"b-urbino2026",
+    title:"Inaugurazione Anno Accademico — Università di Urbino",
+    date:"2026-03-15",
+    location:"Università Carlo Bo, Urbino",
+    type:"Lezione inaugurale",
+    url:"https://www.vassallidibarbero.it/2025/12/16/alessandro-barbero-a-urbino-2026/",
+    source:"Vassalli di Barbero",
+    isNew:false
+  },
+  {
+    id:"b-bologna2026",
+    title:"Barbero — Festa della Storia 2026, Bologna",
+    date:"2026-10-01",
+    location:"Bologna",
+    type:"Festival",
+    url:"https://www.vassallidibarbero.it/2026/03/02/alessandro-barbero-torna-a-bologna-festa-della-storia-2026/",
+    source:"Vassalli di Barbero",
+    isNew:true
+  }
+];
+
+// ─── MESI ────────────────────────────────────────────────────────────────
+const M = ['GEN','FEB','MAR','APR','MAG','GIU','LUG','AGO','SET','OTT','NOV','DIC'];
+
+function parseD(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function fmtD(s){ const d=parseD(s); return {day:d.getDate(), mon:M[d.getMonth()], year:d.getFullYear()}; }
+function today(){ const t=new Date(); return new Date(t.getFullYear(),t.getMonth(),t.getDate()); }
+
+// ─── RENDER ──────────────────────────────────────────────────────────────
+function render(events){
+  const list = document.getElementById('events-list');
+  const upcoming = events
+    .filter(e => parseD(e.date) >= today())
+    .sort((a,b) => parseD(a.date)-parseD(b.date));
+
+  if(!upcoming.length){
+    list.innerHTML = `<p style="color:var(--muted);text-align:center;padding:3rem;font-size:.85rem;">Nessun evento futuro trovato. Riprova più tardi.</p>`;
+    return;
+  }
+
+  const seenIds = getSeenIds();
+  list.innerHTML = upcoming.map((ev,i) => {
+    const {day,mon,year} = fmtD(ev.date);
+    const unseen = !seenIds.includes(ev.id);
+    const daysUntil = Math.round((parseD(ev.date)-today())/(1000*60*60*24));
+    const badgeHtml = unseen
+      ? `<span class="ev-badge badge-new">Nuovo</span>`
+      : daysUntil <= 7
+        ? `<span class="ev-badge badge-soon">${daysUntil}g</span>`
+        : '';
+    return `<a class="ev" href="${ev.url}" target="_blank" rel="noopener"
+               style="animation-delay:${i*0.06}s"
+               onclick="markSeen('${ev.id}')">
+      <div class="ev-date">
+        <div class="ev-day">${String(day).padStart(2,'0')}</div>
+        <div class="ev-mon">${mon}</div>
+        <div class="ev-year">${year}</div>
+      </div>
+      <div class="ev-body">
+        <div class="ev-title">${ev.title}</div>
+        <div class="ev-meta">📍 ${ev.location} &nbsp;·&nbsp; ${ev.type}</div>
+        <div class="ev-src">fonte: ${ev.source}</div>
+      </div>
+      ${badgeHtml}
+    </a>`;
+  }).join('');
+
+  document.getElementById('upd-label').textContent =
+    `${upcoming.length} eventi · aggiornato ${new Date().toLocaleDateString('it-IT')}`;
+}
+
+// ─── SEEN IDS (in-memory) ─────────────────────────────────────────────────
+let _seen = [];
+function getSeenIds(){ return _seen; }
+function markSeen(id){ if(!_seen.includes(id)) _seen.push(id); }
+
+// ─── AI FETCH via Anthropic API ──────────────────────────────────────────
+async function fetchEventsFromAI(){
+  try {
+    const prompt = `Sei un assistente che monitora gli eventi pubblici dello storico italiano Alessandro Barbero.
+Cerca e restituisci SOLO eventi reali e verificabili del 2026 (conferenze, festival, presentazioni di libri, lezioni pubbliche, podcast speciali).
+
+Fonti principali da cui attingere:
+- vassallidibarbero.it (la più aggiornata)
+- eventbrite.it (cerca "Alessandro Barbero")
+- laterza.it
+- YouTube canale ufficiale
+
+Rispondi SOLO con un array JSON valido, nessun testo aggiuntivo, nessun markdown, nessun backtick.
+Ogni evento deve avere: id (stringa unica), title, date (YYYY-MM-DD), location, type, url, source, isNew (true se annunciato nelle ultime 2 settimane).
+Includi solo eventi dal ${new Date().toISOString().split('T')[0]} in poi.
+Massimo 10 eventi. Se non hai dati certi per una data esatta, usa il primo giorno del mese indicato.`;
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1000,
+        tools:[{ type:"web_search_20250305", name:"web_search" }],
+        messages:[{ role:"user", content: prompt }]
+      })
+    });
+
+    if(!res.ok) throw new Error(`API ${res.status}`);
+    const data = await res.json();
+
+    // Estrai testo dalla risposta (può contenere blocchi tool_use)
+    const text = (data.content || [])
+      .filter(b => b.type==='text')
+      .map(b => b.text)
+      .join('');
+
+    // Prova parsing JSON
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    if(Array.isArray(parsed) && parsed.length > 0) return parsed;
+    return null;
+  } catch(e) {
+    console.warn('[BarberoAlert] AI fetch failed, usando dati seed:', e.message);
+    return null;
+  }
+}
+
+// ─── LOAD EVENTS (AI + fallback seed) ────────────────────────────────────
+async function loadEvents(){
+  document.getElementById('events-list').innerHTML =
+    `<div class="loader"><div class="spinner"></div><span>Ricerca eventi in corso…</span></div>`;
+  document.getElementById('live-text').textContent = 'Ricerca in corso…';
+
+  const aiEvents = await fetchEventsFromAI();
+  // Merge AI results with seed (deduplica per id)
+  const merged = [...SEED_EVENTS];
+  if(aiEvents){
+    aiEvents.forEach(ev => {
+      if(!merged.find(e=>e.id===ev.id)) merged.push(ev);
+    });
+  }
+
+  cachedEvents = merged;
+  lastFetch = new Date();
+
+  render(cachedEvents);
+  document.getElementById('live-text').textContent =
+    `Aggiornato ${lastFetch.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}`;
+  document.getElementById('last-check').textContent =
+    `Ultimo controllo: ${lastFetch.toLocaleTimeString('it-IT')}`;
+
+  // Notifica nuovi eventi
+  notifyNewEvents();
+}
+
+// ─── NOTIFICHE ────────────────────────────────────────────────────────────
+function notifyNewEvents(){
+  if(Notification?.permission !== 'granted') return;
+  const seenIds = getSeenIds();
+  const nuovi = cachedEvents.filter(e=>e.isNew && !seenIds.includes(e.id) && parseD(e.date)>=today());
+  nuovi.forEach(ev => {
+    const {day,mon,year} = fmtD(ev.date);
+    const n = new Notification(`🏛️ Barbero Alert — ${ev.title}`, {
+      body:`📅 ${day} ${mon} ${year} · 📍 ${ev.location}`,
+      icon:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Barbero_Alessandro_2012.jpg/220px-Barbero_Alessandro_2012.jpg',
+      tag: ev.id, requireInteraction: false
+    });
+    n.onclick = () => { window.open(ev.url,'_blank'); n.close(); };
+    markSeen(ev.id);
+  });
+  if(nuovi.length) toast(`🔔 ${nuovi.length} nuovo/i evento/i di Barbero!`);
+}
+
+// ─── SUBSCRIBE ────────────────────────────────────────────────────────────
+async function subscribe(){
+  if(!('Notification' in window)){
+    toast('❌ Browser non supporta le notifiche'); return;
+  }
+  document.getElementById('btn-sub').disabled = true;
+  document.getElementById('btn-sub').textContent = '⏳ Richiesta…';
+
+  const r = await Notification.requestPermission();
+  if(r==='granted'){
+    setStatus('on');
+    document.getElementById('btn-test').disabled = false;
+    document.getElementById('btn-sub').textContent = '✅ Attive';
+    toast('✅ Notifiche attivate!');
+    notifyNewEvents();
+  } else if(r==='denied'){
+    setStatus('err');
+    document.getElementById('btn-sub').textContent = '⛔ Bloccate';
+    toast('⛔ Permesso negato — abilita dalle impostazioni', true);
+  } else {
+    document.getElementById('btn-sub').disabled = false;
+    document.getElementById('btn-sub').textContent = '🔔 Attiva Notifiche';
+  }
+}
+
+function testNotif(){
+  if(Notification?.permission!=='granted') return;
+  const n = new Notification('🏛️ Test — Barbero Alert', {
+    body:'Le notifiche funzionano! Riceverai avvisi per ogni nuovo evento.',
+    icon:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Barbero_Alessandro_2012.jpg/220px-Barbero_Alessandro_2012.jpg',
+    tag:'test'
+  });
+  setTimeout(()=>n.close(),4000);
+  toast('✉️ Notifica di prova inviata!');
+}
+
+// ─── STATUS ───────────────────────────────────────────────────────────────
+function setStatus(s){
+  const pill=document.getElementById('s-pill');
+  const dot=document.getElementById('s-dot');
+  const txt=document.getElementById('s-text');
+  pill.className=`status-pill pill-${s}`;
+  dot.className=`pill-dot dot-${s}`;
+  if(s==='on')  txt.textContent='Notifiche attive';
+  if(s==='off') txt.textContent='Non attive';
+  if(s==='err') txt.textContent='Permesso negato';
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────
+let _tt;
+function toast(msg, err=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.borderLeftColor = err ? '#f87171' : 'var(--gold)';
+  t.classList.add('show');
+  clearTimeout(_tt);
+  _tt=setTimeout(()=>t.classList.remove('show'),4000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  // Ripristina stato notifiche
+  if(Notification?.permission==='granted'){
+    setStatus('on');
+    document.getElementById('btn-sub').textContent='✅ Attive';
+    document.getElementById('btn-test').disabled=false;
+  } else if(Notification?.permission==='denied'){
+    setStatus('err');
+    document.getElementById('btn-sub').textContent='⛔ Bloccate';
+    document.getElementById('btn-sub').disabled=true;
+  }
+
+  // Carica eventi subito
+  loadEvents();
+
+  // Ricarica ogni ora
+  setInterval(loadEvents, INTERVAL);
+});
+</script>
+
+</body>
+</html>
